@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-Environment="SERVER_ADDR=:18888"
+Environment="SERVER_ADDR=:51888"
 Environment="DB_PATH=/var/lib/license-server/license.db"
 Environment="JWT_SECRET=change-me"
 Environment="ADMIN_USERNAME=admin"

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +34,32 @@ func main() {
 
 	mux := http.NewServeMux()
 	h.Register(mux)
+
+	// 添加静态文件服务（前端页面）
+	execDir, err := os.Getwd()
+	if err != nil {
+		execDir = "."
+	}
+	distPath := filepath.Join(execDir, "dist")
+	if f, err := os.Stat(distPath); err == nil && f.IsDir() {
+		staticHandler := http.FileServer(http.Dir(distPath))
+		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// API 路由优先
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				mux.ServeHTTP(w, r)
+				return
+			}
+			// SPA 路由支持：如果文件不存在，返回 index.html
+			filePath := filepath.Join(distPath, r.URL.Path)
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				r.URL.Path = "/index.html"
+			}
+			staticHandler.ServeHTTP(w, r)
+		}))
+		log.Printf("serving frontend files from %s", distPath)
+	} else {
+		log.Printf("warning: dist directory not found at %s", distPath)
+	}
 
 	wrapped := middleware.CORS(mux)
 	wrapped = middleware.Recover(wrapped)

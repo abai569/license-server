@@ -11,7 +11,6 @@ license-server-*
 
 # Dependency directories
 vendor/
-node_modules/
 
 # IDE
 .idea/
@@ -28,10 +27,6 @@ node_modules/
 *.db
 *.db-shm
 *.db-wal
-
-# Build output
-dist/
-build/
 
 # Logs
 *.log
