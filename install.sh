@@ -8,8 +8,20 @@ echo "🚀 开始安装授权服务..."
 INSTALL_DIR="/opt/license-server"
 DATA_DIR="/var/lib/license-server"
 
-# 创建目录
-mkdir -p "$INSTALL_DIR" "$DATA_DIR"
+# 检测并创建目录
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo "📁 创建安装目录：$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+else
+    echo "✅ 安装目录已存在：$INSTALL_DIR"
+fi
+
+if [ ! -d "$DATA_DIR" ]; then
+    echo "📁 创建数据目录：$DATA_DIR"
+    mkdir -p "$DATA_DIR"
+else
+    echo "✅ 数据目录已存在：$DATA_DIR"
+fi
 
 # 检测架构
 ARCH=$(uname -m)
