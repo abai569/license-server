@@ -38,6 +38,20 @@ case $ARCH in
         ;;
 esac
 
+# 检测并停止旧服务
+if systemctl is-active --quiet license-server; then
+    echo "🛑 检测到运行中的服务，正在停止..."
+    systemctl stop license-server
+    sleep 2
+    echo "✅ 服务已停止"
+else
+    echo "✅ 未检测到运行中的服务"
+fi
+
+# 删除旧数据库（确保密码重置）
+echo "🧹 清理旧数据库..."
+rm -f "$DATA_DIR/license.db"
+
 # 下载二进制文件
 RELEASE_URL="https://github.com/abai569/license-server/releases/latest/download/$BINARY"
 echo "⬇️ 下载二进制文件：$BINARY"
