@@ -65,6 +65,7 @@ Environment="DB_PATH=$DATA_DIR/license.db"
 Environment="JWT_SECRET=$JWT_SECRET"
 Environment="ADMIN_USERNAME=admin"
 Environment="ADMIN_PASSWORD=$ADMIN_PASSWORD"
+Environment="FRONTEND_DIST_PATH=$INSTALL_DIR/dist"
 ExecStart=$INSTALL_DIR/license-server
 Restart=on-failure
 RestartSec=5

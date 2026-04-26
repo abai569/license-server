@@ -36,11 +36,14 @@ func main() {
 	h.Register(mux)
 
 	// 添加静态文件服务（前端页面）
-	execDir, err := os.Getwd()
-	if err != nil {
-		execDir = "."
+	distPath := os.Getenv("FRONTEND_DIST_PATH")
+	if distPath == "" {
+		execDir, err := os.Getwd()
+		if err != nil {
+			execDir = "."
+		}
+		distPath = filepath.Join(execDir, "dist")
 	}
-	distPath := filepath.Join(execDir, "dist")
 	if f, err := os.Stat(distPath); err == nil && f.IsDir() {
 		staticHandler := http.FileServer(http.Dir(distPath))
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
