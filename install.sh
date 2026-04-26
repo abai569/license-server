@@ -47,17 +47,17 @@ if ! command -v unzip &> /dev/null; then
     fi
 fi
 
-# 下载前端文件
+# 下载前端文件（直接下载到安装目录）
 echo "⬇️ 下载前端文件..."
 FRONTEND_URL="https://github.com/abai569/license-server/releases/latest/download/frontend-dist.zip"
-if curl -fL --connect-timeout 10 --max-time 60 "$FRONTEND_URL" -o /tmp/frontend.zip 2>/dev/null; then
+if curl -fL --connect-timeout 10 --max-time 60 "$FRONTEND_URL" -o "$INSTALL_DIR/frontend-dist.zip" 2>/dev/null; then
     rm -rf "$INSTALL_DIR/dist"
     mkdir -p "$INSTALL_DIR/dist"
-    if unzip -q -o /tmp/frontend.zip -d "$INSTALL_DIR/dist" 2>/dev/null; then
-        rm -f /tmp/frontend.zip
+    if unzip -q -o "$INSTALL_DIR/frontend-dist.zip" -d "$INSTALL_DIR/dist" 2>/dev/null; then
+        rm -f "$INSTALL_DIR/frontend-dist.zip"
         echo "✅ 前端文件下载完成"
     else
-        rm -f /tmp/frontend.zip
+        rm -f "$INSTALL_DIR/frontend-dist.zip"
         echo "⚠️ 前端文件解压失败，将只运行 API 服务"
     fi
 else
