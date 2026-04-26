@@ -1,0 +1,41 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+license-server-*
+
+# Test binary
+*.test
+
+# Dependency directories
+vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db

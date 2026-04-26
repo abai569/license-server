@@ -1,0 +1,214 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"license-server/internal/model"
+	"license-server/internal/repo"
+	"license-server/internal/util"
+)
+
+type Handler struct {
+	repo      *repo.Repository
+	jwtSecret string
+}
+
+func NewHandler(r *repo.Repository, jwtSecret string) *Handler {
+	return &Handler{
+		repo:      r,
+		jwtSecret: jwtSecret,
+	}
+}
+
+func (h *Handler) Register(mux *http.ServeMux) {
+	// 验证端 API（公开）
+	mux.HandleFunc("/api/verify", h.verify)
+	mux.HandleFunc("/api/info", h.info)
+
+	// 管理端 API（需要 JWT 鉴权）
+	mux.HandleFunc("/api/admin/login", h.adminLogin)
+	mux.HandleFunc("/api/admin/license/list", h.authMiddleware(h.licenseList))
+	mux.HandleFunc("/api/admin/license/create", h.authMiddleware(h.licenseCreate))
+	mux.HandleFunc("/api/admin/license/update", h.authMiddleware(h.licenseUpdate))
+	mux.HandleFunc("/api/admin/license/delete", h.authMiddleware(h.licenseDelete))
+}
+
+func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.VerifyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	resp, err := h.repo.VerifyLicense(req.LicenseKey, req.Domain)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) info(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req struct {
+		LicenseKey string `json:"license_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	license, err := h.repo.GetLicenseByKey(req.LicenseKey)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if license == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "license not found"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"license_key": license.LicenseKey,
+		"domain":      license.Domain,
+		"expire_time": license.ExpireTime,
+		"status":      license.Status,
+	})
+}
+
+func (h *Handler) adminLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	admin, err := h.repo.GetAdminByUsername(req.Username)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if admin == nil || admin.Password != util.MD5(req.Password) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
+		return
+	}
+
+	token, err := util.GenerateToken(admin.ID, admin.Username, h.jwtSecret)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, model.LoginResponse{
+		Token:    token,
+		Username: admin.Username,
+	})
+}
+
+func (h *Handler) licenseList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.LicenseListRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	licenses, err := h.repo.ListLicenses(req.Keyword)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"list": licenses,
+	})
+}
+
+func (h *Handler) licenseCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.LicenseCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	license, err := h.repo.CreateLicense(req.Domain, req.ExpireTime)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, license)
+}
+
+func (h *Handler) licenseUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.LicenseUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if err := h.repo.UpdateLicense(req.ID, req.Domain, req.ExpireTime, req.Status); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "updated"})
+}
+
+func (h *Handler) licenseDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req model.LicenseDeleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if err := h.repo.DeleteLicense(req.ID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+}
+
+func writeJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}

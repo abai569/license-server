@@ -1,0 +1,30 @@
+# 前端源码
+src/
+node_modules/
+dist/
+build/
+
+# 依赖
+.pnp
+.pnp.js
+
+# 测试
+coverage/
+
+# 生产构建
+*.log
+
+# 本地环境
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
