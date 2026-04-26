@@ -1,13 +1,13 @@
 package model
 
 type License struct {
-	ID           int64  `gorm:"primaryKey;autoIncrement"`
-	LicenseKey   string `gorm:"column:license_key;type:varchar(64);not null;uniqueIndex"`
-	Domain       string `gorm:"column:domain;type:varchar(255);not null"`
-	ExpireTime   int64  `gorm:"column:expire_time;not null"`
-	Status       int    `gorm:"column:status;not null;default:1"`
-	CreatedTime  int64  `gorm:"column:created_time;not null"`
-	UpdatedTime  int64  `gorm:"column:updated_time;not null"`
+	ID          int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	LicenseKey  string `gorm:"column:license_key;type:varchar(64);not null;uniqueIndex" json:"license_key"`
+	Domain      string `gorm:"column:domain;type:varchar(255);not null" json:"domain"`
+	ExpireTime  int64  `gorm:"column:expire_time;not null" json:"expire_time"`
+	Status      int    `gorm:"column:status;not null;default:1" json:"status"`
+	CreatedTime int64  `gorm:"column:created_time;not null" json:"created_time"`
+	UpdatedTime int64  `gorm:"column:updated_time;not null" json:"updated_time"`
 }
 
 func (License) TableName() string { return "license" }
