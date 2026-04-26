@@ -37,7 +37,7 @@ echo "⬇️ 下载前端文件..."
 FRONTEND_URL="https://github.com/abai569/license-server/releases/latest/download/frontend-dist.zip"
 if curl -fL "$FRONTEND_URL" -o /tmp/frontend.zip 2>/dev/null; then
     mkdir -p "$INSTALL_DIR/dist"
-    unzip -q -o /tmp/frontend.zip -d "$INSTALL_DIR/dist"
+    unzip -q -o -j /tmp/frontend.zip -d "$INSTALL_DIR/dist"
     rm -f /tmp/frontend.zip
     echo "✅ 前端文件下载完成"
 else
