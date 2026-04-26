@@ -29,17 +29,24 @@ esac
 # 下载二进制文件
 RELEASE_URL="https://github.com/abai569/license-server/releases/latest/download/$BINARY"
 echo "⬇️ 下载二进制文件：$BINARY"
-curl -L "$RELEASE_URL" -o "$INSTALL_DIR/license-server"
+if ! curl -L --connect-timeout 10 --max-time 60 "$RELEASE_URL" -o "$INSTALL_DIR/license-server"; then
+    echo "❌ 二进制文件下载失败"
+    exit 1
+fi
 chmod +x "$INSTALL_DIR/license-server"
 
 # 下载前端文件
 echo "⬇️ 下载前端文件..."
 FRONTEND_URL="https://github.com/abai569/license-server/releases/latest/download/frontend-dist.zip"
-if curl -fL "$FRONTEND_URL" -o /tmp/frontend.zip 2>/dev/null; then
+if curl -fL --connect-timeout 10 --max-time 60 "$FRONTEND_URL" -o /tmp/frontend.zip 2>/dev/null; then
     mkdir -p "$INSTALL_DIR/dist"
-    unzip -q -o -j /tmp/frontend.zip -d "$INSTALL_DIR/dist"
-    rm -f /tmp/frontend.zip
-    echo "✅ 前端文件下载完成"
+    if unzip -q -o -j /tmp/frontend.zip -d "$INSTALL_DIR/dist" 2>/dev/null; then
+        rm -f /tmp/frontend.zip
+        echo "✅ 前端文件下载完成"
+    else
+        rm -f /tmp/frontend.zip
+        echo "⚠️ 前端文件解压失败，将只运行 API 服务"
+    fi
 else
     echo "⚠️ 前端文件下载失败，将只运行 API 服务"
 fi
@@ -70,6 +77,8 @@ ExecStart=$INSTALL_DIR/license-server
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65535
+MemoryLimit=256M
+OOMScoreAdjust=-100
 
 [Install]
 WantedBy=multi-user.target
@@ -82,7 +91,7 @@ systemctl enable license-server
 systemctl start license-server
 
 # 检查状态
-sleep 2
+sleep 5
 if systemctl is-active --quiet license-server; then
     echo ""
     echo "✅ 安装完成！"
