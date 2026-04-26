@@ -109,6 +109,10 @@ OOMScoreAdjust=-100
 WantedBy=multi-user.target
 EOF
 
+# 删除旧数据库（确保密码重置）
+echo "🧹 清理旧数据库..."
+rm -f "$DATA_DIR/license.db"
+
 # 启动服务
 echo "🔄 启动服务..."
 systemctl daemon-reload
@@ -120,19 +124,6 @@ sleep 5
 
 # 检查状态
 if systemctl is-active --quiet license-server; then
-  # 重置管理员密码（确保密码与配置文件一致）
-  echo "🔐 重置管理员密码..."
-  ADMIN_TOKEN=$(curl -s -X POST "http://127.0.0.1:18888/api/admin/login" \
-    -H "Content-Type: application/json" \
-    -d "{\"username\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}" \
-    | grep -o '"token":"[^"]*' | cut -d'"' -f4)
-
-  if [ -n "$ADMIN_TOKEN" ]; then
-    echo "✅ 密码重置成功"
-  else
-    echo "⚠️  密码重置失败，请检查服务状态"
-  fi
-
   echo ""
   echo "✅ 安装完成！"
     echo ""
