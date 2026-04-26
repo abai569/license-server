@@ -116,8 +116,9 @@ ExecStart=$INSTALL_DIR/license-server
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65535
-MemoryLimit=256M
+MemoryMax=256M
 OOMScoreAdjust=-100
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
