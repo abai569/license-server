@@ -35,6 +35,18 @@ if ! curl -L --connect-timeout 10 --max-time 60 "$RELEASE_URL" -o "$INSTALL_DIR/
 fi
 chmod +x "$INSTALL_DIR/license-server"
 
+# 检查并安装 unzip
+if ! command -v unzip &> /dev/null; then
+    echo "📦 正在安装 unzip..."
+    if command -v apt &> /dev/null; then
+        apt update -qq && apt install -y unzip -qq
+    elif command -v yum &> /dev/null; then
+        yum install -y unzip -q
+    elif command -v apk &> /dev/null; then
+        apk add --no-cache unzip
+    fi
+fi
+
 # 下载前端文件
 echo "⬇️ 下载前端文件..."
 FRONTEND_URL="https://github.com/abai569/license-server/releases/latest/download/frontend-dist.zip"
