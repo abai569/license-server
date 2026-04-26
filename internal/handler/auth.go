@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"license-server/internal/util"
@@ -27,7 +28,7 @@ func (h *Handler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		r.Header.Set("X-Admin-ID", string(rune(claims.AdminID)))
+		r.Header.Set("X-Admin-ID", strconv.FormatInt(claims.AdminID, 10))
 		r.Header.Set("X-Admin-Username", claims.Username)
 
 		next(w, r)
