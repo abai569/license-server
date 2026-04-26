@@ -92,7 +92,7 @@ fi
 
 # 生成随机密钥
 JWT_SECRET=$(openssl rand -hex 16)
-ADMIN_PASSWORD=$(openssl rand -hex 8)
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin23}"
 
 echo "🔐 生成随机密钥..."
 echo "   JWT_SECRET: $JWT_SECRET"
