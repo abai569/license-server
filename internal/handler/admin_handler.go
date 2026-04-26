@@ -160,7 +160,7 @@ func (h *Handler) licenseCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	license, err := h.repo.CreateLicense(req.Domain, req.ExpireTime)
+	license, err := h.repo.CreateLicense(req.Domain, req.Remark, req.ExpireTime)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -181,7 +181,7 @@ func (h *Handler) licenseUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.UpdateLicense(req.ID, req.Domain, req.ExpireTime, req.Status); err != nil {
+	if err := h.repo.UpdateLicense(req.ID, req.Domain, req.Remark, req.ExpireTime, req.Status); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}

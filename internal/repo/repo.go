@@ -95,8 +95,9 @@ func (r *Repository) ListLicenses(keyword string) ([]model.License, error) {
 	var licenses []model.License
 	query := r.db.Order("id DESC")
 
+	// 支持 UUID 和域名搜索
 	if keyword != "" {
-		query = query.Where("domain LIKE ?", "%"+keyword+"%")
+		query = query.Where("domain LIKE ? OR license_key LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
 	err := query.Find(&licenses).Error
@@ -127,11 +128,12 @@ func (r *Repository) GetLicenseByKey(licenseKey string) (*model.License, error) 
 	return &license, nil
 }
 
-func (r *Repository) CreateLicense(domain string, expireTime int64) (*model.License, error) {
+func (r *Repository) CreateLicense(domain, remark string, expireTime int64) (*model.License, error) {
 	now := time.Now().UnixMilli()
 	license := model.License{
 		LicenseKey:   uuid.New().String(),
 		Domain:       domain,
+		Remark:       remark,
 		ExpireTime:   expireTime,
 		Status:       1,
 		CreatedTime:  now,
@@ -144,9 +146,10 @@ func (r *Repository) CreateLicense(domain string, expireTime int64) (*model.Lice
 	return &license, nil
 }
 
-func (r *Repository) UpdateLicense(id int64, domain string, expireTime int64, status int) error {
+func (r *Repository) UpdateLicense(id int64, domain, remark string, expireTime int64, status int) error {
 	return r.db.Model(&model.License{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"domain":       domain,
+		"remark":       remark,
 		"expire_time":  expireTime,
 		"status":       status,
 		"updated_time": time.Now().UnixMilli(),

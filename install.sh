@@ -48,10 +48,6 @@ else
     echo "✅ 未检测到运行中的服务"
 fi
 
-# 删除旧数据库（确保密码重置）
-echo "🧹 清理旧数据库..."
-rm -f "$DATA_DIR/license.db"
-
 # 下载二进制文件
 RELEASE_URL="https://github.com/abai569/license-server/releases/latest/download/$BINARY"
 echo "⬇️ 下载二进制文件：$BINARY"
@@ -123,10 +119,6 @@ TimeoutStopSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-
-# 删除旧数据库（确保密码重置）
-echo "🧹 清理旧数据库..."
-rm -f "$DATA_DIR/license.db"
 
 # 启动服务
 echo "🔄 启动服务..."

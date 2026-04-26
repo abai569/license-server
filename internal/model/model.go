@@ -4,6 +4,7 @@ type License struct {
 	ID          int64  `gorm:"primaryKey;autoIncrement" json:"id"`
 	LicenseKey  string `gorm:"column:license_key;type:varchar(64);not null;uniqueIndex" json:"license_key"`
 	Domain      string `gorm:"column:domain;type:varchar(255);not null" json:"domain"`
+	Remark      string `gorm:"column:remark;type:varchar(255)" json:"remark"`
 	ExpireTime  int64  `gorm:"column:expire_time;not null" json:"expire_time"`
 	Status      int    `gorm:"column:status;not null;default:1" json:"status"`
 	CreatedTime int64  `gorm:"column:created_time;not null" json:"created_time"`
@@ -49,12 +50,14 @@ type LicenseListRequest struct {
 
 type LicenseCreateRequest struct {
 	Domain     string `json:"domain"`
+	Remark     string `json:"remark"`
 	ExpireTime int64  `json:"expire_time"`
 }
 
 type LicenseUpdateRequest struct {
 	ID         int64  `json:"id"`
 	Domain     string `json:"domain"`
+	Remark     string `json:"remark"`
 	ExpireTime int64  `json:"expire_time"`
 	Status     int    `json:"status"`
 }
