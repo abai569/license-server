@@ -42,20 +42,25 @@ func (r *Repository) Close() error {
 }
 
 func (r *Repository) InitAdmin(username, password string) error {
+	passwordHash := util.MD5(password)
+	
 	var count int64
 	if err := r.db.Model(&model.AdminUser{}).Where("username = ?", username).Count(&count).Error; err != nil {
 		return err
 	}
 
 	if count == 0 {
+		// 创建管理员
 		admin := model.AdminUser{
 			Username:    username,
-			Password:    util.MD5(password),
+			Password:    passwordHash,
 			CreatedTime: time.Now().UnixMilli(),
 		}
 		return r.db.Create(&admin).Error
+	} else {
+		// 更新密码
+		return r.db.Model(&model.AdminUser{}).Where("username = ?", username).Update("password", passwordHash).Error
 	}
-	return nil
 }
 
 func (r *Repository) GetAdminByUsername(username string) (*model.AdminUser, error) {

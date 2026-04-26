@@ -115,11 +115,26 @@ systemctl daemon-reload
 systemctl enable license-server
 systemctl start license-server
 
-# 检查状态
+# 等待服务启动
 sleep 5
+
+# 检查状态
 if systemctl is-active --quiet license-server; then
-    echo ""
-    echo "✅ 安装完成！"
+  # 重置管理员密码（确保密码与配置文件一致）
+  echo "🔐 重置管理员密码..."
+  ADMIN_TOKEN=$(curl -s -X POST "http://127.0.0.1:18888/api/admin/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"username\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}" \
+    | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+
+  if [ -n "$ADMIN_TOKEN" ]; then
+    echo "✅ 密码重置成功"
+  else
+    echo "⚠️  密码重置失败，请检查服务状态"
+  fi
+
+  echo ""
+  echo "✅ 安装完成！"
     echo ""
     echo "📋 重要信息："
     echo "   管理后台地址：http://服务器 IP:18888"
