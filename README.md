@@ -20,7 +20,7 @@ FLVX 面板的独立授权管理系统
 ```bash
 curl -fsSL https://raw.githubusercontent.com/abai569/license-server/main/install.sh -o install.sh
 chmod +x install.sh
-sudo ./install.sh
+./install.sh
 ```
 
 安装完成后会输出：
