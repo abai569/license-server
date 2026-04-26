@@ -45,6 +45,14 @@ func main() {
 		distPath = filepath.Join(execDir, "dist")
 	}
 	if f, err := os.Stat(distPath); err == nil && f.IsDir() {
+		// 处理 /assets/ 路径的静态文件
+		assetsPath := filepath.Join(distPath, "assets")
+		if _, err := os.Stat(assetsPath); err == nil {
+			assetsHandler := http.FileServer(http.Dir(assetsPath))
+			mux.Handle("/assets/", http.StripPrefix("/assets/", assetsHandler))
+		}
+		
+		// 处理根路径的静态文件和 SPA 路由
 		staticHandler := http.FileServer(http.Dir(distPath))
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// API 路由优先

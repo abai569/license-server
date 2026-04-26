@@ -70,6 +70,22 @@ func (r *Repository) GetAdminByUsername(username string) (*model.AdminUser, erro
 	return &admin, nil
 }
 
+func (r *Repository) GetAdminByID(id int64) (*model.AdminUser, error) {
+	var admin model.AdminUser
+	err := r.db.Where("id = ?", id).First(&admin).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &admin, nil
+}
+
+func (r *Repository) UpdateAdminPassword(id int64, passwordHash string) error {
+	return r.db.Model(&model.AdminUser{}).Where("id = ?", id).Update("password", passwordHash).Error
+}
+
 func (r *Repository) ListLicenses(keyword string) ([]model.License, error) {
 	var licenses []model.License
 	query := r.db.Order("id DESC")

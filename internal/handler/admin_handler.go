@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"license-server/internal/model"
 	"license-server/internal/repo"
@@ -32,6 +33,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/admin/license/create", h.authMiddleware(h.licenseCreate))
 	mux.HandleFunc("/api/admin/license/update", h.authMiddleware(h.licenseUpdate))
 	mux.HandleFunc("/api/admin/license/delete", h.authMiddleware(h.licenseDelete))
+	mux.HandleFunc("/api/admin/change_password", h.authMiddleware(h.changePassword))
 }
 
 func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +207,63 @@ func (h *Handler) licenseDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+}
+
+func (h *Handler) changePassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	adminID := r.Header.Get("X-Admin-ID")
+	if adminID == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.OldPassword == "" || req.NewPassword == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "密码不能为空"})
+		return
+	}
+
+	if len(req.NewPassword) < 6 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "新密码长度不能少于 6 位"})
+		return
+	}
+
+	adminIDInt, err := strconv.ParseInt(adminID, 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invalid admin id"})
+		return
+	}
+
+	admin, err := h.repo.GetAdminByID(adminIDInt)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if admin == nil || admin.Password != util.MD5(req.OldPassword) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "原密码错误"})
+		return
+	}
+
+	newPasswordHash := util.MD5(req.NewPassword)
+	if err := h.repo.UpdateAdminPassword(adminIDInt, newPasswordHash); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "密码修改成功"})
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
