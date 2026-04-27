@@ -23,10 +23,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative">
             <Dropdown>
               <DropdownTrigger>
-                <Button className="text-sm font-medium text-foreground" variant="secondary">
+                <button className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                   admin
                   <svg
-                    className="w-4 h-4 ml-1"
+                    className="w-4 h-4"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       clipRule="evenodd"
                     />
                   </svg>
-                </Button>
+                </button>
               </DropdownTrigger>
               <DropdownMenu>
               <DropdownItem
