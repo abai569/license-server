@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* 顶部导航栏 */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">授权管理</h1>
+          <h1 className="text-xl font-bold text-gray-900">Flvx授权管理</h1>
           
           {/* 用户菜单 */}
           <div className="relative">
