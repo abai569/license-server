@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '../components/ui/Dropdown';
-import { SearchIcon } from '../components/ui/SearchIcon';
+import { SearchBar } from '../components/ui/SearchBar';
+import { DatePicker } from '../components/ui/DatePicker';
 import { licenseApi, type License } from '../api';
 import { formatDate } from '../utils/auth';
 import AdminLayout from '../layouts/admin';
@@ -12,6 +13,7 @@ import AdminLayout from '../layouts/admin';
 export default function Dashboard() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [keyword, setKeyword] = useState('');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
@@ -23,15 +25,13 @@ export default function Dashboard() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 日期快捷选项
   const datePresets = [
     { label: '1 月后', days: 30 },
     { label: '3 月后', days: 90 },
     { label: '6 月后', days: 180 },
-    { label: '1 年后', days: 365 },
+    { label: '1 年', days: 365 },
   ];
 
-  // 实时搜索（300ms 防抖）
   useEffect(() => {
     const timer = setTimeout(() => {
       loadLicenses();
@@ -44,15 +44,12 @@ export default function Dashboard() {
     loadLicenses();
   }, []);
 
-  // 复制到剪贴板（支持非 HTTPS）
   const copyToClipboard = async (text: string) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        // 现代浏览器（推荐 HTTPS）
         await navigator.clipboard.writeText(text);
         toast.success('复制成功');
       } else {
-        // 降级方案（支持非 HTTPS）
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
@@ -88,7 +85,6 @@ export default function Dashboard() {
 
   const handleEdit = (license: License) => {
     setEditingLicense(license);
-    // 将毫秒时间戳转换为 YYYY-MM-DD 格式
     const expireDate = new Date(license.expire_time);
     const year = expireDate.getFullYear();
     const month = String(expireDate.getMonth() + 1).padStart(2, '0');
@@ -104,7 +100,6 @@ export default function Dashboard() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('确定要删除这个授权吗？')) return;
-
     try {
       await licenseApi.delete(id);
       toast.success('删除成功');
@@ -122,16 +117,8 @@ export default function Dashboard() {
 
     setIsSubmitting(true);
     try {
-      // 将日期字符串转换为时间戳（本地时间 23:59:59）
       const [year, month, day] = formData.expire_time.split('-').map(Number);
       const expireTime = new Date(year, month - 1, day, 23, 59, 59).getTime();
-      
-      console.log('Creating license:', {
-        domain: formData.domain,
-        expire_time: formData.expire_time,
-        timestamp: expireTime,
-        date: new Date(expireTime).toISOString()
-      });
       
       if (editingLicense) {
         await licenseApi.update({
@@ -174,30 +161,21 @@ export default function Dashboard() {
     <AdminLayout>
       <Toaster position="top-center" />
         
-        {/* 搜索和操作栏 */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex-1 w-full">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="搜索域名、UUID 或备注..."
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              </div>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="primary" onClick={handleCreate}>
-                新建授权
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 mb-4">
+          <Button variant="primary" size="sm" onClick={handleCreate}>
+            新增
+          </Button>
+          <SearchBar
+            isVisible={isSearchVisible}
+            value={keyword}
+            placeholder="搜索域名、UUID 或备注..."
+            onOpen={() => setIsSearchVisible(true)}
+            onClose={() => setIsSearchVisible(false)}
+            onChange={setKeyword}
+            width="240px"
+          />
         </div>
 
-        {/* 授权列表 */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -290,18 +268,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 新建/编辑弹窗 */}
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title={editingLicense ? '编辑授权' : '新建授权'}
+          title={editingLicense ? '编辑授权' : '新增授权'}
           footer={
             <>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+              <Button variant="secondary" size="md" onClick={() => setIsModalOpen(false)} className="min-w-[80px] h-10">
                 取消
               </Button>
-              <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-                确定
+              <Button variant="primary" size="md" onClick={handleSubmit} isLoading={isSubmitting} className="min-w-[80px] h-10">
+                保存
               </Button>
             </>
           }
@@ -327,18 +304,23 @@ export default function Dashboard() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               到期时间
             </label>
-            <div className="flex gap-2">
-              <Input
-                type="date"
+            <div className="flex items-center gap-2">
+              <DatePicker
                 value={formData.expire_time}
-                onChange={(e) => setFormData({ ...formData, expire_time: e.target.value })}
-                className="flex-1"
+                onChange={(date) => {
+                  if (date) {
+                    const { year, month, day } = date;
+                    const m = String(month).padStart(2, '0');
+                    const d = String(day).padStart(2, '0');
+                    setFormData({ ...formData, expire_time: `${year}-${m}-${d}` });
+                  } else {
+                    setFormData({ ...formData, expire_time: '' });
+                  }
+                }}
               />
               <Dropdown>
                 <DropdownTrigger>
-                  <Button variant="primary" size="sm">
-                    快捷
-                  </Button>
+                  <Button variant="primary" size="md" className="shrink-0 h-10">快捷</Button>
                 </DropdownTrigger>
                 <DropdownMenu aria-label="日期快捷选项">
                   {datePresets.map((preset) => (
@@ -371,9 +353,7 @@ export default function Dashboard() {
                 </DropdownMenu>
               </Dropdown>
             </div>
-            <p className="text-xs text-gray-500 mt-1">例：20281001</p>
           </div>
-          
           {!editingLicense && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

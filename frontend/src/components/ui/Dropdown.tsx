@@ -70,7 +70,7 @@ export function DropdownMenu({ children, className }: React.PropsWithChildren<Dr
 
   return (
     <div className={cn(
-      "absolute right-0 z-50 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
+      "absolute right-0 z-50 mt-2 w-fit min-w-[120px] rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
       className
     )}>
       <div className="py-1" role="menu" aria-orientation="vertical">
