@@ -28,10 +28,10 @@ type VerifyRequest struct {
 }
 
 type VerifyResponse struct {
-	Valid       bool   `json:"valid"`
-	ExpireTime  int64  `json:"expire_time,omitempty"`
-	Username    string `json:"username,omitempty"`
-	Reason      string `json:"reason,omitempty"`
+	Valid      bool   `json:"valid"`
+	ExpireTime int64  `json:"expire_time,omitempty"`
+	Username   string `json:"username,omitempty"`
+	Reason     string `json:"reason,omitempty"`
 }
 
 type LoginRequest struct {
@@ -52,6 +52,7 @@ type LicenseCreateRequest struct {
 	Domain     string `json:"domain"`
 	Remark     string `json:"remark"`
 	ExpireTime int64  `json:"expire_time"`
+	LicenseKey string `json:"license_key,omitempty"`
 }
 
 type LicenseUpdateRequest struct {
@@ -60,6 +61,7 @@ type LicenseUpdateRequest struct {
 	Remark     string `json:"remark"`
 	ExpireTime int64  `json:"expire_time"`
 	Status     int    `json:"status"`
+	LicenseKey string `json:"license_key,omitempty"`
 }
 
 type LicenseDeleteRequest struct {
