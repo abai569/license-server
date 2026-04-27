@@ -27,6 +27,14 @@ func Open(dbPath string) (*Repository, error) {
 		return nil, err
 	}
 
+	// 手动添加 remark 字段（如果不存在）
+	m := db.Migrator()
+	if m.HasTable(&model.License{}) && !m.HasColumn(&model.License{}, "Remark") {
+		if err := m.AddColumn(&model.License{}, "Remark"); err != nil {
+			return nil, err
+		}
+	}
+
 	return &Repository{db: db}, nil
 }
 
