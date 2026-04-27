@@ -95,9 +95,10 @@ func (r *Repository) ListLicenses(keyword string) ([]model.License, error) {
 	var licenses []model.License
 	query := r.db.Order("id DESC")
 
-	// 支持 UUID 和域名搜索
+	// 支持 UUID、域名、备注三字段搜索
 	if keyword != "" {
-		query = query.Where("domain LIKE ? OR license_key LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+		query = query.Where("domain LIKE ? OR license_key LIKE ? OR remark LIKE ?", 
+			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
 	err := query.Find(&licenses).Error
