@@ -50,6 +50,12 @@ export interface LicenseListResponse {
   list: License[];
 }
 
+export interface ImportResult {
+  success: number;
+  failed: number;
+  errors?: string[];
+}
+
 export const authApi = {
   login: (data: LoginParams) =>
     api.post<{ token: string; username: string }>('/admin/login', data),
@@ -58,12 +64,22 @@ export const authApi = {
 export const licenseApi = {
   list: (keyword?: string) =>
     api.post<LicenseListResponse>('/admin/license/list', { keyword }),
-  create: (data: { domain: string; remark: string; expire_time: number }) =>
+  create: (data: { domain: string; remark: string; expire_time: number; license_key?: string }) =>
     api.post<License>('/admin/license/create', data),
-  update: (data: { id: number; domain: string; remark: string; expire_time: number; status: number }) =>
+  update: (data: { id: number; domain: string; remark: string; expire_time: number; status: number; license_key?: string }) =>
     api.post('/admin/license/update', data),
   delete: (id: number) =>
     api.post('/admin/license/delete', { id }),
+  export: () =>
+    api.get('/admin/license/export', { responseType: 'blob' }),
+  import: (file: File, overwrite: boolean) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('overwrite', overwrite.toString());
+    return api.post<ImportResult>('/admin/license/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export const adminApi = {

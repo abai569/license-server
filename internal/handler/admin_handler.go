@@ -29,11 +29,17 @@ func (h *Handler) Register(mux *http.ServeMux) {
 
 	// 管理端 API（需要 JWT 鉴权）
 	mux.HandleFunc("/api/admin/login", h.adminLogin)
+	mux.HandleFunc("/api/admin/change_password", h.authMiddleware(h.changePassword))
+
+	// 授权管理
 	mux.HandleFunc("/api/admin/license/list", h.authMiddleware(h.licenseList))
 	mux.HandleFunc("/api/admin/license/create", h.authMiddleware(h.licenseCreate))
 	mux.HandleFunc("/api/admin/license/update", h.authMiddleware(h.licenseUpdate))
 	mux.HandleFunc("/api/admin/license/delete", h.authMiddleware(h.licenseDelete))
-	mux.HandleFunc("/api/admin/change_password", h.authMiddleware(h.changePassword))
+
+	// 导入导出
+	mux.HandleFunc("/api/admin/license/export", h.authMiddleware(h.licenseExport))
+	mux.HandleFunc("/api/admin/license/import", h.authMiddleware(h.licenseImport))
 }
 
 func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +166,7 @@ func (h *Handler) licenseCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	license, err := h.repo.CreateLicense(req.Domain, req.Remark, req.ExpireTime)
+	license, err := h.repo.CreateLicense(req.Domain, req.Remark, req.ExpireTime, req.LicenseKey)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -181,7 +187,7 @@ func (h *Handler) licenseUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.UpdateLicense(req.ID, req.Domain, req.Remark, req.ExpireTime, req.Status); err != nil {
+	if err := h.repo.UpdateLicense(req.ID, req.Domain, req.Remark, req.ExpireTime, req.Status, req.LicenseKey); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
@@ -207,6 +213,69 @@ func (h *Handler) licenseDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+}
+
+func (h *Handler) licenseExport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	licenses, err := h.repo.ExportLicenses()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	data, err := json.MarshalIndent(licenses, "", "  ")
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename=licenses-backup.json")
+	w.Write(data)
+}
+
+func (h *Handler) licenseImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	// 限制最大文件大小 10MB
+	r.ParseMultipartForm(10 << 20)
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "文件上传失败: " + err.Error()})
+		return
+	}
+	defer file.Close()
+
+	// 解析 overwrite 参数
+	overwriteStr := r.FormValue("overwrite")
+	overwrite := overwriteStr == "true"
+
+	var licenses []model.License
+	if err := json.NewDecoder(file).Decode(&licenses); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "JSON 格式错误: " + err.Error()})
+		return
+	}
+
+	// 限制导入数量
+	if len(licenses) > 5000 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "单次导入不能超过 5000 条"})
+		return
+	}
+
+	result, err := h.repo.ImportLicenses(licenses, overwrite)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *Handler) changePassword(w http.ResponseWriter, r *http.Request) {
