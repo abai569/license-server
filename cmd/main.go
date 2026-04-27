@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +19,19 @@ import (
 	"license-server/internal/repo"
 )
 
+var (
+	Version   = "unknown"
+	GitCommit = "unknown"
+	BuildTime = "unknown"
+)
+
 func main() {
+	flag.Parse()
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Printf("license-server version %s\ncommit: %s\nbuild: %s\n", Version, GitCommit, BuildTime)
+		return
+	}
+
 	cfg := config.FromEnv()
 
 	r, err := repo.Open(cfg.DBPath)
@@ -35,7 +49,7 @@ func main() {
 	mux := http.NewServeMux()
 	h.Register(mux)
 
-	// æ·»åŠ é™æ€æ–‡ä»¶æœåŠ¡ï¼ˆå‰ç«¯é¡µé¢ï¼‰
+	// Ìí¼Ó¾²Ì¬ÎÄ¼ş·şÎñ£¨Ç°¶ËÒ³Ãæ£©
 	distPath := os.Getenv("FRONTEND_DIST_PATH")
 	if distPath == "" {
 		execDir, err := os.Getwd()
@@ -45,22 +59,22 @@ func main() {
 		distPath = filepath.Join(execDir, "dist")
 	}
 	if f, err := os.Stat(distPath); err == nil && f.IsDir() {
-		// å¤„ç† /assets/ è·¯å¾„çš„é™æ€æ–‡ä»¶
+		// ´¦Àí /assets/ Â·¾¶µÄ¾²Ì¬ÎÄ¼ş
 		assetsPath := filepath.Join(distPath, "assets")
 		if _, err := os.Stat(assetsPath); err == nil {
 			assetsHandler := http.FileServer(http.Dir(assetsPath))
 			mux.Handle("/assets/", http.StripPrefix("/assets/", assetsHandler))
 		}
 		
-		// å¤„ç†æ ¹è·¯å¾„çš„é™æ€æ–‡ä»¶å’Œ SPA è·¯ç”±
+		// ´¦Àí¸ùÂ·¾¶µÄ¾²Ì¬ÎÄ¼şºÍ SPA Â·ÓÉ
 		staticHandler := http.FileServer(http.Dir(distPath))
 		mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// API è·¯ç”±ä¼˜å…ˆ
+			// API Â·ÓÉÓÅÏÈ
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				mux.ServeHTTP(w, r)
 				return
 			}
-			// SPA è·¯ç”±æ”¯æŒï¼šå¦‚æœæ–‡ä»¶ä¸å­˜åœ¨ï¼Œè¿”å› index.html
+			// SPA Â·ÓÉÖ§³Ö£ºÈç¹ûÎÄ¼ş²»´æÔÚ£¬·µ»Ø index.html
 			filePath := filepath.Join(distPath, r.URL.Path)
 			if _, err := os.Stat(filePath); os.IsNotExist(err) {
 				r.URL.Path = "/index.html"

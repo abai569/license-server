@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 开始安装授权服务..."
+echo "🚀 开始安装/更新授权服务..."
 
 # 安装目录
 INSTALL_DIR="/opt/license-server"
@@ -39,11 +39,22 @@ case $ARCH in
 esac
 
 # 检测并停止旧服务
+# 检查是否已存在二进制文件并获取版本
+if [ -f "$INSTALL_DIR/license-server" ]; then
+    echo "🕵️ 检测到已安装的版本..."
+    # 尝试获取版本号 (如果程序支持 version 命令)
+    CURRENT_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null || echo "Unknown / No version command")
+    echo "📦 当前安装版本：$CURRENT_VERSION"
+    chmod +x "$INSTALL_DIR/license-server" 2>/dev/null
+else
+    echo "✅ 未检测到已安装的文件，准备全新安装"
+fi
+
 if systemctl is-active --quiet license-server; then
     echo "🛑 检测到运行中的服务，正在停止..."
     systemctl stop license-server
     sleep 2
-    echo "✅ 服务已停止"
+    echo "✅ 旧服务已停止"
 else
     echo "✅ 未检测到运行中的服务"
 fi
@@ -124,7 +135,7 @@ EOF
 echo "🔄 启动服务..."
 systemctl daemon-reload
 systemctl enable license-server
-systemctl start license-server
+systemctl restart license-server
 
 # 等待服务启动
 sleep 5
@@ -132,7 +143,15 @@ sleep 5
 # 检查状态
 if systemctl is-active --quiet license-server; then
   echo ""
-  echo "✅ 安装完成！"
+  echo "✅ 安装/更新完成！"
+    echo ""
+    # 尝试打印运行中的版本
+    if [ -x "$INSTALL_DIR/license-server" ]; then
+        RUNNING_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null || echo "")
+        if [ -n "$RUNNING_VERSION" ]; then
+            echo " 当前运行版本：$RUNNING_VERSION"
+        fi
+    fi
     echo ""
     echo "📋 重要信息："
     echo "   管理后台地址：http://服务器 IP:18888"
