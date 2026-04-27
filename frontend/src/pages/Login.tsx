@@ -40,7 +40,7 @@ export default function Login() {
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">授权管理后台</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Flvx授权管理后台</h1>
             <p className="text-gray-600 mt-2">请输入管理员账号和密码</p>
           </div>
 

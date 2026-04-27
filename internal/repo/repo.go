@@ -51,7 +51,7 @@ func (r *Repository) Close() error {
 
 func (r *Repository) InitAdmin(username, password string) error {
 	passwordHash := util.MD5(password)
-	
+
 	var count int64
 	if err := r.db.Model(&model.AdminUser{}).Where("username = ?", username).Count(&count).Error; err != nil {
 		return err
@@ -105,7 +105,7 @@ func (r *Repository) ListLicenses(keyword string) ([]model.License, error) {
 
 	// 支持 UUID、域名、备注三字段搜索
 	if keyword != "" {
-		query = query.Where("domain LIKE ? OR license_key LIKE ? OR remark LIKE ?", 
+		query = query.Where("domain LIKE ? OR license_key LIKE ? OR remark LIKE ?",
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
@@ -137,16 +137,29 @@ func (r *Repository) GetLicenseByKey(licenseKey string) (*model.License, error) 
 	return &license, nil
 }
 
-func (r *Repository) CreateLicense(domain, remark string, expireTime int64) (*model.License, error) {
+// 验证 UUID 格式 (简单格式检查)
+func isValidUUID(s string) bool {
+	_, err := uuid.Parse(s)
+	return err == nil
+}
+
+func (r *Repository) CreateLicense(domain, remark string, expireTime int64, customKey string) (*model.License, error) {
 	now := time.Now().UnixMilli()
+	key := customKey
+	if key == "" {
+		key = uuid.New().String()
+	} else {
+		key = uuid.MustParse(key).String() // 标准化格式
+	}
+
 	license := model.License{
-		LicenseKey:   uuid.New().String(),
-		Domain:       domain,
-		Remark:       remark,
-		ExpireTime:   expireTime,
-		Status:       1,
-		CreatedTime:  now,
-		UpdatedTime:  now,
+		LicenseKey:  key,
+		Domain:      domain,
+		Remark:      remark,
+		ExpireTime:  expireTime,
+		Status:      1,
+		CreatedTime: now,
+		UpdatedTime: now,
 	}
 
 	if err := r.db.Create(&license).Error; err != nil {
@@ -155,14 +168,29 @@ func (r *Repository) CreateLicense(domain, remark string, expireTime int64) (*mo
 	return &license, nil
 }
 
-func (r *Repository) UpdateLicense(id int64, domain, remark string, expireTime int64, status int) error {
-	return r.db.Model(&model.License{}).Where("id = ?", id).Updates(map[string]interface{}{
+func (r *Repository) UpdateLicense(id int64, domain, remark string, expireTime int64, status int, newLicenseKey string) error {
+	updates := map[string]interface{}{
 		"domain":       domain,
 		"remark":       remark,
 		"expire_time":  expireTime,
 		"status":       status,
 		"updated_time": time.Now().UnixMilli(),
-	}).Error
+	}
+
+	// 如果提供了新的 LicenseKey 且不为空，则更新 UUID
+	if newLicenseKey != "" {
+		existing, err := r.GetLicenseByKey(newLicenseKey)
+		if err != nil {
+			return err
+		}
+		// 排除自身，如果已被其他记录占用则报错
+		if existing != nil && existing.ID != id {
+			return errors.New("该 UUID 已被其他授权占用")
+		}
+		updates["license_key"] = newLicenseKey
+	}
+
+	return r.db.Model(&model.License{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func (r *Repository) DeleteLicense(id int64) error {
@@ -197,4 +225,78 @@ func (r *Repository) VerifyLicense(licenseKey, domain string) (*model.VerifyResp
 		ExpireTime: license.ExpireTime,
 		Username:   "admin",
 	}, nil
+}
+
+func (r *Repository) ExportLicenses() ([]model.License, error) {
+	var licenses []model.License
+	err := r.db.Order("id ASC").Find(&licenses).Error
+	return licenses, err
+}
+
+type ImportResult struct {
+	Success int      `json:"success"`
+	Failed  int      `json:"failed"`
+	Errors  []string `json:"errors,omitempty"`
+}
+
+func (r *Repository) ImportLicenses(licenses []model.License, overwrite bool) (*ImportResult, error) {
+	result := &ImportResult{}
+
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		for _, lic := range licenses {
+			// 基本校验
+			if lic.LicenseKey == "" || lic.Domain == "" || lic.ExpireTime == 0 {
+				result.Failed++
+				result.Errors = append(result.Errors, "缺少必填字段: "+lic.LicenseKey)
+				continue
+			}
+
+			var existing model.License
+			err := tx.Where("license_key = ?", lic.LicenseKey).First(&existing).Error
+
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// 不存在，创建
+				now := time.Now().UnixMilli()
+				if lic.CreatedTime == 0 {
+					lic.CreatedTime = now
+				}
+				lic.UpdatedTime = now
+				if lic.Status == 0 {
+					lic.Status = 1
+				}
+				if err := tx.Create(&lic).Error; err != nil {
+					result.Failed++
+					result.Errors = append(result.Errors, "创建失败: "+err.Error())
+				} else {
+					result.Success++
+				}
+			} else if err != nil {
+				result.Failed++
+				result.Errors = append(result.Errors, "查询失败: "+err.Error())
+			} else {
+				// 已存在
+				if overwrite {
+					// 覆盖更新
+					existing.Domain = lic.Domain
+					existing.Remark = lic.Remark
+					existing.ExpireTime = lic.ExpireTime
+					existing.Status = lic.Status
+					existing.UpdatedTime = time.Now().UnixMilli()
+					if err := tx.Save(&existing).Error; err != nil {
+						result.Failed++
+						result.Errors = append(result.Errors, "更新失败: "+err.Error())
+					} else {
+						result.Success++
+					}
+				} else {
+					// 跳过（默认行为）
+					result.Failed++
+					result.Errors = append(result.Errors, "已存在且未开启覆盖: "+lic.LicenseKey)
+				}
+			}
+		}
+		return nil
+	})
+
+	return result, err
 }
