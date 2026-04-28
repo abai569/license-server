@@ -213,25 +213,25 @@ export default function Dashboard() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
-                  UUID
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  用户
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
                   域名
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
-                  备注
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  UUID
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
                   到期时间
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
                   状态
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
                   操作
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-bold text-gray-600 tracking-wider whitespace-nowrap">
+                <th className="px-6 py-3 text-right text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
                   共 {licenses.length} 个授权
                 </th>
               </tr>
@@ -253,11 +253,11 @@ export default function Dashboard() {
                 licenses.map((license) => (
                   <tr key={license.id} className="hover:bg-gray-50">
                     <td
-                      className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 cursor-pointer hover:text-blue-600"
-                      onClick={() => copyToClipboard(license.license_key)}
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer hover:text-blue-600"
+                      onClick={() => copyToClipboard(license.remark || '')}
                       title="点击复制"
                     >
-                      {license.license_key}
+                      {license.remark || '-'}
                     </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer hover:text-blue-600"
@@ -267,11 +267,11 @@ export default function Dashboard() {
                       {license.domain}
                     </td>
                     <td
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer hover:text-blue-600"
-                      onClick={() => copyToClipboard(license.remark || '')}
+                      className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 cursor-pointer hover:text-blue-600"
+                      onClick={() => copyToClipboard(license.license_key)}
                       title="点击复制"
                     >
-                      {license.remark || '-'}
+                      {license.license_key}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(license.expire_time)}
@@ -295,7 +295,7 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </td>
-                    <td></td>
+                    <td className="px-6 py-4 whitespace-nowrap"></td>
                   </tr>
                 ))
               )}
@@ -399,7 +399,7 @@ export default function Dashboard() {
             type="text"
             value={formData.license_key}
             onChange={(e) => setFormData({ ...formData, license_key: e.target.value })}
-            placeholder={editingLicense ? `留空不变 (${editingLicense.license_key.slice(0, 8)}...)` : '留空自动生成'}
+            placeholder={editingLicense ? `当前 UUID: ${editingLicense.license_key}` : '留空自动生成'}
             className="w-full px-3 py-1.5 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-blue-500 transition-colors h-9 font-mono placeholder:text-gray-400"
           />
           <p className="text-xs text-gray-400 mt-1">

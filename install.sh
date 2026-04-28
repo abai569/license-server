@@ -145,11 +145,16 @@ if systemctl is-active --quiet license-server; then
   echo ""
   echo "✅ 安装/更新完成！"
     echo ""
-    # 尝试打印运行中的版本
+    # 尝试打印运行中的版本 (提取纯净版本号)
     if [ -x "$INSTALL_DIR/license-server" ]; then
         RUNNING_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null || echo "")
         if [ -n "$RUNNING_VERSION" ]; then
-            echo " 当前运行版本：$RUNNING_VERSION"
+            # 自动解析并提取版本号，忽略 commit 和 build 信息
+            # 匹配 v*.*.* 格式的版本号
+            SHORT_VERSION=$(echo "$RUNNING_VERSION" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
+            if [ -n "$SHORT_VERSION" ]; then
+                echo " 当前运行版本： $SHORT_VERSION"
+            fi
         fi
     fi
     echo ""
