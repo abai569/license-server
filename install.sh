@@ -39,22 +39,6 @@ case $ARCH in
 esac
 
 # 检测并停止旧服务
-# 检查是否已存在二进制文件并获取版本
-if [ -f "$INSTALL_DIR/license-server" ]; then
-    echo "🕵️ 检测到已安装的版本..."
-    # 尝试获取版本号并提取纯净版本 (v*.*.*格式)
-    RAW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | grep "version:" | awk '{print $2}' || echo "")
-    
-    if [ -n "$RAW_VERSION" ] && [ "$RAW_VERSION" != "unknown" ]; then
-        echo "📦 当前安装版本：$RAW_VERSION"
-    else
-        echo "📦 当前安装版本：未知 (旧版本)"
-    fi
-    chmod +x "$INSTALL_DIR/license-server" 2>/dev/null
-else
-    echo "✅ 未检测到已安装的文件，准备全新安装"
-fi
-
 if systemctl is-active --quiet license-server; then
     echo "🛑 检测到运行中的服务，正在停止..."
     systemctl stop license-server
