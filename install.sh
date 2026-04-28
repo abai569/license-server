@@ -42,9 +42,15 @@ esac
 # 检查是否已存在二进制文件并获取版本
 if [ -f "$INSTALL_DIR/license-server" ]; then
     echo "🕵️ 检测到已安装的版本..."
-    # 尝试获取版本号 (如果程序支持 version 命令)
-    CURRENT_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null || echo "Unknown / No version command")
-    echo "📦 当前安装版本：$CURRENT_VERSION"
+    # 尝试获取版本号并提取纯净版本 (v*.*.*格式)
+    RAW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | head -n 1 || echo "")
+    CLEAN_VERSION=$(echo "$RAW_VERSION" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
+    
+    if [ -n "$CLEAN_VERSION" ]; then
+        echo "📦 当前安装版本：$CLEAN_VERSION"
+    else
+        echo "📦 当前安装版本：未知"
+    fi
     chmod +x "$INSTALL_DIR/license-server" 2>/dev/null
 else
     echo "✅ 未检测到已安装的文件，准备全新安装"
@@ -144,31 +150,25 @@ sleep 5
 if systemctl is-active --quiet license-server; then
   echo ""
   echo "✅ 安装/更新完成！"
-    echo ""
-    # 尝试打印运行中的版本 (提取纯净版本号)
-    if [ -x "$INSTALL_DIR/license-server" ]; then
-        RUNNING_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null || echo "")
-        if [ -n "$RUNNING_VERSION" ]; then
-            # 自动解析并提取版本号，忽略 commit 和 build 信息
-            # 匹配 v*.*.* 格式的版本号
-            SHORT_VERSION=$(echo "$RUNNING_VERSION" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
-            if [ -n "$SHORT_VERSION" ]; then
-                echo " 当前运行版本： $SHORT_VERSION"
-            fi
-        fi
-    fi
-    echo ""
-    echo "📋 重要信息："
-    echo "   管理后台地址：http://服务器 IP:18888"
-    echo "   管理员账号：admin"
-    echo "   管理员密码：$ADMIN_PASSWORD"
-    echo ""
-    echo "⚠️  请妥善保管管理员密码！"
-    echo ""
-    echo "📝 常用命令："
-    echo "   查看状态：systemctl status license-server"
-    echo "   重启服务：systemctl restart license-server"
-    echo "   查看日志：journalctl -u license-server -f"
+  
+  # 显示新版本号
+  NEW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
+  if [ -n "$NEW_VERSION" ]; then
+    echo "✅ 当前新版本：$NEW_VERSION"
+  fi
+  
+  echo ""
+  echo "📋 重要信息："
+  echo "   管理后台地址：http://服务器 IP:18888"
+  echo "   管理员账号：admin"
+  echo "   管理员密码：$ADMIN_PASSWORD"
+  echo ""
+  echo "⚠️  请妥善保管管理员密码！"
+  echo ""
+  echo "📝 常用命令："
+  echo "   查看状态：systemctl status license-server"
+  echo "   重启服务：systemctl restart license-server"
+  echo "   查看日志：journalctl -u license-server -f"
 else
     echo "❌ 服务启动失败，请检查日志："
     echo "   journalctl -u license-server -n 50"
