@@ -43,13 +43,12 @@ esac
 if [ -f "$INSTALL_DIR/license-server" ]; then
     echo "🕵️ 检测到已安装的版本..."
     # 尝试获取版本号并提取纯净版本 (v*.*.*格式)
-    RAW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | head -n 1 || echo "")
-    CLEAN_VERSION=$(echo "$RAW_VERSION" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
+    RAW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | grep "version:" | awk '{print $2}' || echo "")
     
-    if [ -n "$CLEAN_VERSION" ]; then
-        echo "📦 当前安装版本：$CLEAN_VERSION"
+    if [ -n "$RAW_VERSION" ] && [ "$RAW_VERSION" != "unknown" ]; then
+        echo "📦 当前安装版本：$RAW_VERSION"
     else
-        echo "📦 当前安装版本：未知"
+        echo "📦 当前安装版本：未知 (旧版本)"
     fi
     chmod +x "$INSTALL_DIR/license-server" 2>/dev/null
 else
@@ -66,6 +65,9 @@ else
 fi
 
 # 下载二进制文件
+# 先从 GitHub 获取最新版本号
+LATEST_TAG=$(curl -s https://api.github.com/repos/abai569/license-server/releases/latest | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
+
 RELEASE_URL="https://github.com/abai569/license-server/releases/latest/download/$BINARY"
 echo "⬇️ 下载二进制文件：$BINARY"
 if ! curl -L --connect-timeout 10 --max-time 60 "$RELEASE_URL" -o "$INSTALL_DIR/license-server"; then
@@ -152,9 +154,8 @@ if systemctl is-active --quiet license-server; then
   echo "✅ 安装/更新完成！"
   
   # 显示新版本号
-  NEW_VERSION=$("$INSTALL_DIR/license-server" version 2>/dev/null | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
-  if [ -n "$NEW_VERSION" ]; then
-    echo "✅ 当前新版本：$NEW_VERSION"
+  if [ -n "$LATEST_TAG" ]; then
+    echo "✅ 当前新版本：$LATEST_TAG"
   fi
   
   echo ""
