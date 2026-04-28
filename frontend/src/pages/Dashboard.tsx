@@ -232,7 +232,7 @@ export default function Dashboard() {
                   操作
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
-                  共 {licenses.length} 个授权
+                  共 <span className="text-red-600 text-base mx-1">{licenses.length}</span> 个授权
                 </th>
               </tr>
             </thead>
