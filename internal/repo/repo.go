@@ -265,23 +265,35 @@ func GetClientIP(r *http.Request) string {
 	if xff != "" {
 		ips := strings.Split(xff, ",")
 		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
+			return extractIP(strings.TrimSpace(ips[0]))
 		}
 	}
 
 	// 检查 X-Real-IP 头
 	xri := r.Header.Get("X-Real-IP")
 	if xri != "" {
-		return xri
+		return extractIP(xri)
 	}
 
 	// 使用 RemoteAddr
-	ip := r.RemoteAddr
-	if colonIndex := strings.LastIndex(ip, ":"); colonIndex != -1 {
-		ip = ip[:colonIndex]
-	}
+	return extractIP(r.RemoteAddr)
+}
 
-	return ip
+// extractIP 从 IP:Port 格式中提取纯 IP 地址
+func extractIP(addr string) string {
+	// 处理 IPv6 地址 [::1]:port 格式
+	if strings.HasPrefix(addr, "[") {
+		if end := strings.Index(addr, "]"); end != -1 {
+			return addr[1:end]
+		}
+	}
+	
+	// 处理 IPv4 地址 ip:port 格式
+	if colonIndex := strings.LastIndex(addr, ":"); colonIndex != -1 {
+		return addr[:colonIndex]
+	}
+	
+	return addr
 }
 
 func (r *Repository) DeleteLicense(id int64) error {
