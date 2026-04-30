@@ -27,7 +27,7 @@ export function formatDate(timestamp: number | null | undefined): string {
 
 export function formatDateTime(timestamp: number | null | undefined): string {
   if (!timestamp || timestamp <= 0) {
-    return 'Invalid Date';
+    return '-';
   }
   return new Date(timestamp).toLocaleString('zh-CN', {
     year: 'numeric',
@@ -36,4 +36,11 @@ export function formatDateTime(timestamp: number | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+export function isUnverified(timestamp: number | undefined): boolean {
+  if (!timestamp || timestamp <= 0) return true;
+  
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  return timestamp < sevenDaysAgo;
 }

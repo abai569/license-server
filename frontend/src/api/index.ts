@@ -44,6 +44,8 @@ export interface License {
   status: number;
   created_time: number;
   updated_time: number;
+  last_verified_at?: number;
+  verified_ip?: string;
 }
 
 export interface LicenseListResponse {

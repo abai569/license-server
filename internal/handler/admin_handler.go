@@ -60,6 +60,15 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 验证成功，更新最后验证时间和 IP
+	if resp.Valid {
+		license, _ := h.repo.GetLicenseByKey(req.LicenseKey)
+		if license != nil {
+			clientIP := repo.GetClientIP(r)
+			h.repo.UpdateLicenseVerification(license.ID, clientIP)
+		}
+	}
+
 	writeJSON(w, http.StatusOK, resp)
 }
 

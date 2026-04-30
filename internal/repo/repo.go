@@ -2,6 +2,9 @@ package repo
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,11 +30,23 @@ func Open(dbPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	// 手动添加 remark 字段（如果不存在）
+	// 手动添加新字段（如果不存在）
 	m := db.Migrator()
-	if m.HasTable(&model.License{}) && !m.HasColumn(&model.License{}, "Remark") {
-		if err := m.AddColumn(&model.License{}, "Remark"); err != nil {
-			return nil, err
+	if m.HasTable(&model.License{}) {
+		if !m.HasColumn(&model.License{}, "Remark") {
+			if err := m.AddColumn(&model.License{}, "Remark"); err != nil {
+				return nil, err
+			}
+		}
+		if !m.HasColumn(&model.License{}, "LastVerifiedAt") {
+			if err := m.AddColumn(&model.License{}, "LastVerifiedAt"); err != nil {
+				return nil, err
+			}
+		}
+		if !m.HasColumn(&model.License{}, "VerifiedIP") {
+			if err := m.AddColumn(&model.License{}, "VerifiedIP"); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -185,12 +200,46 @@ func (r *Repository) UpdateLicense(id int64, domain, remark string, expireTime i
 		}
 		// 排除自身，如果已被其他记录占用则报错
 		if existing != nil && existing.ID != id {
-			return errors.New("该 UUID 已被其他授权占用")
+			return fmt.Errorf("授权码已被使用")
 		}
 		updates["license_key"] = newLicenseKey
 	}
 
 	return r.db.Model(&model.License{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// UpdateLicenseVerification 更新授权验证信息
+func (r *Repository) UpdateLicenseVerification(id int64, ip string) error {
+	return r.db.Model(&model.License{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"last_verified_at": time.Now().UnixMilli(),
+		"verified_ip":      ip,
+	}).Error
+}
+
+// GetClientIP 从 HTTP 请求中提取客户端 IP
+func GetClientIP(r *http.Request) string {
+	// 检查 X-Forwarded-For 头（反代场景）
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		if len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+
+	// 检查 X-Real-IP 头
+	xri := r.Header.Get("X-Real-IP")
+	if xri != "" {
+		return xri
+	}
+
+	// 使用 RemoteAddr
+	ip := r.RemoteAddr
+	if colonIndex := strings.LastIndex(ip, ":"); colonIndex != -1 {
+		ip = ip[:colonIndex]
+	}
+
+	return ip
 }
 
 func (r *Repository) DeleteLicense(id int64) error {

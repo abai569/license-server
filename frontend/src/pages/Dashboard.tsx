@@ -8,7 +8,7 @@ import { SearchBar } from '../components/ui/SearchBar';
 import { DatePicker } from '../components/ui/DatePicker';
 import ImportModal from '../components/ui/ImportModal';
 import { licenseApi, type License } from '../api';
-import { formatDate } from '../utils/auth';
+import { formatDate, formatDateTime, isUnverified } from '../utils/auth';
 import AdminLayout from '../layouts/admin';
 
 export default function Dashboard() {
@@ -185,7 +185,7 @@ export default function Dashboard() {
     <AdminLayout>
       <Toaster position="top-center" />
 
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="flex items-center justify-between mb-2 gap-3">
         <SearchBar
           isVisible={isSearchVisible}
           value={keyword}
@@ -206,6 +206,10 @@ export default function Dashboard() {
             导入
           </Button>
         </div>
+      </div>
+
+      <div className="text-left text-sm text-gray-600 mb-3">
+        共 <span className="text-red-600 text-base font-semibold mx-1">{licenses.length}</span> 个授权
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -229,23 +233,26 @@ export default function Dashboard() {
                   状态
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
-                  操作
+                  最后验证
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
-                  共 <span className="text-red-600 text-base mx-1">{licenses.length}</span> 个授权
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  验证 IP
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  操作
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                     加载中...
                   </td>
                 </tr>
               ) : licenses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                     暂无数据
                   </td>
                 </tr>
@@ -279,6 +286,21 @@ export default function Dashboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getStatusText(license.status)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {license.last_verified_at ? (
+                        <>
+                          {formatDateTime(license.last_verified_at)}
+                          {isUnverified(license.last_verified_at) && (
+                            <span className="ml-2 text-xs text-red-600">(未激活)</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-gray-400">从未验证</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {license.verified_ip || '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         <button
@@ -295,7 +317,6 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap"></td>
                   </tr>
                 ))
               )}
