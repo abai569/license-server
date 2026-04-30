@@ -8,7 +8,8 @@ import { SearchBar } from '../components/ui/SearchBar';
 import { DatePicker } from '../components/ui/DatePicker';
 import ImportModal from '../components/ui/ImportModal';
 import { licenseApi, type License } from '../api';
-import { formatDate, formatDateTime, isUnverified } from '../utils/auth';
+import { formatDate, formatDateTime, formatIPChangeTime, isUnverified } from '../utils/auth';
+import IPHistoryModal from '../components/IPHistoryModal';
 import AdminLayout from '../layouts/admin';
 
 export default function Dashboard() {
@@ -27,6 +28,13 @@ export default function Dashboard() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isIPHistoryOpen, setIsIPHistoryOpen] = useState(false);
+  const [currentLicenseId, setCurrentLicenseId] = useState<number | null>(null);
+
+  const handleViewIPHistory = (licenseId: number) => {
+    setCurrentLicenseId(licenseId);
+    setIsIPHistoryOpen(true);
+  };
 
   const datePresets = [
     { label: '1 月后', days: 30 },
@@ -131,7 +139,6 @@ export default function Dashboard() {
           remark: formData.remark,
           expire_time: expireTime,
           status: formData.status,
-          license_key: formData.license_key || undefined,
         });
         toast.success('更新成功');
       } else {
@@ -139,7 +146,6 @@ export default function Dashboard() {
           domain: formData.domain,
           remark: formData.remark,
           expire_time: expireTime,
-          license_key: formData.license_key || undefined,
         });
         toast.success('创建成功');
       }
@@ -299,7 +305,23 @@ export default function Dashboard() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {license.verified_ip || '-'}
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{license.verified_ip || '-'}</span>
+                        {license.ip_changed_at && (
+                          <span className="text-xs text-orange-600 whitespace-nowrap">
+                            🔄 {formatIPChangeTime(license.ip_changed_at)}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleViewIPHistory(license.id)}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="查看 IP 变更历史"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
@@ -468,6 +490,12 @@ export default function Dashboard() {
       isOpen={isImportOpen}
       onClose={() => setIsImportOpen(false)}
       onSuccess={loadLicenses}
+    />
+
+    <IPHistoryModal
+      isOpen={isIPHistoryOpen}
+      onClose={() => setIsIPHistoryOpen(false)}
+      licenseId={currentLicenseId || 0}
     />
   </AdminLayout>
   );

@@ -36,6 +36,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/api/admin/license/create", h.authMiddleware(h.licenseCreate))
 	mux.HandleFunc("/api/admin/license/update", h.authMiddleware(h.licenseUpdate))
 	mux.HandleFunc("/api/admin/license/delete", h.authMiddleware(h.licenseDelete))
+	mux.HandleFunc("/api/admin/license/ip-logs", h.authMiddleware(h.getIPLogs))
 
 	// 导入导出
 	mux.HandleFunc("/api/admin/license/export", h.authMiddleware(h.licenseExport))
@@ -60,12 +61,13 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 验证成功，更新最后验证时间和 IP
+	// 验证成功，更新验证信息并记录 IP 变更
 	if resp.Valid {
 		license, _ := h.repo.GetLicenseByKey(req.LicenseKey)
 		if license != nil {
 			clientIP := repo.GetClientIP(r)
-			h.repo.UpdateLicenseVerification(license.ID, clientIP)
+			userAgent := r.UserAgent()
+			h.repo.UpdateLicenseIP(license.ID, clientIP, userAgent)
 		}
 	}
 
@@ -342,6 +344,37 @@ func (h *Handler) changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "密码修改成功"})
+}
+
+func (h *Handler) getIPLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var req struct {
+		LicenseID int64 `json:"license_id"`
+		Limit     int   `json:"limit"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 50 // 默认最多 50 条
+	}
+
+	logs, err := h.repo.GetIPLogs(req.LicenseID, limit)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"logs": logs,
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

@@ -57,7 +57,11 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
 
     setIsUploading(true);
     try {
-      const res = await licenseApi.import(selectedFile, overwrite);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('overwrite', overwrite.toString());
+      
+      const res = await licenseApi.import(formData);
       const { success, failed, errors } = res.data;
 
       if (failed > 0) {

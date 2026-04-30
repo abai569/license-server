@@ -26,7 +26,7 @@ func Open(dbPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	if err := db.AutoMigrate(&model.License{}, &model.AdminUser{}); err != nil {
+	if err := db.AutoMigrate(&model.License{}, &model.AdminUser{}, &model.LicenseIPLog{}); err != nil {
 		return nil, err
 	}
 
@@ -214,6 +214,48 @@ func (r *Repository) UpdateLicenseVerification(id int64, ip string) error {
 		"last_verified_at": time.Now().UnixMilli(),
 		"verified_ip":      ip,
 	}).Error
+}
+
+// UpdateLicenseIP 更新授权 IP 并记录变更
+func (r *Repository) UpdateLicenseIP(licenseID int64, newIP, userAgent string) error {
+	// 获取当前 IP
+	var license model.License
+	if err := r.db.First(&license, licenseID).Error; err != nil {
+		return err
+	}
+
+	now := time.Now().UnixMilli()
+	updates := map[string]interface{}{
+		"last_verified_at": now,
+		"verified_ip":      newIP,
+	}
+
+	// 如果 IP 不同，记录日志
+	if license.VerifiedIP != "" && license.VerifiedIP != newIP {
+		log := &model.LicenseIPLog{
+			LicenseID: licenseID,
+			OldIP:     license.VerifiedIP,
+			NewIP:     newIP,
+			ChangedAt: now,
+			UserAgent: userAgent,
+		}
+		if err := r.db.Create(log).Error; err != nil {
+			return err
+		}
+		updates["ip_changed_at"] = now
+	}
+
+	return r.db.Model(&model.License{}).Where("id = ?", licenseID).Updates(updates).Error
+}
+
+// GetIPLogs 获取指定授权的 IP 变更历史
+func (r *Repository) GetIPLogs(licenseID int64, limit int) ([]model.LicenseIPLog, error) {
+	var logs []model.LicenseIPLog
+	err := r.db.Where("license_id = ?", licenseID).
+		Order("changed_at DESC").
+		Limit(limit).
+		Find(&logs).Error
+	return logs, err
 }
 
 // GetClientIP 从 HTTP 请求中提取客户端 IP

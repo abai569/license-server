@@ -38,6 +38,16 @@ export function formatDateTime(timestamp: number | null | undefined): string {
   });
 }
 
+export function formatIPChangeTime(timestamp: number): string {
+  if (!timestamp || timestamp <= 0) return '';
+  return new Date(timestamp).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function isUnverified(timestamp: number | undefined): boolean {
   if (!timestamp || timestamp <= 0) return true;
   

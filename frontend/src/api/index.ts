@@ -46,6 +46,16 @@ export interface License {
   updated_time: number;
   last_verified_at?: number;
   verified_ip?: string;
+  ip_changed_at?: number;
+}
+
+export interface LicenseIPLog {
+  id: number;
+  license_id: number;
+  old_ip: string;
+  new_ip: string;
+  changed_at: number;
+  user_agent: string;
 }
 
 export interface LicenseListResponse {
@@ -66,22 +76,18 @@ export const authApi = {
 export const licenseApi = {
   list: (keyword?: string) =>
     api.post<LicenseListResponse>('/admin/license/list', { keyword }),
-  create: (data: { domain: string; remark: string; expire_time: number; license_key?: string }) =>
+  create: (data: { domain: string; remark: string; expire_time: number }) =>
     api.post<License>('/admin/license/create', data),
-  update: (data: { id: number; domain: string; remark: string; expire_time: number; status: number; license_key?: string }) =>
+  update: (data: { id: number; domain: string; remark: string; expire_time: number; status: number }) =>
     api.post('/admin/license/update', data),
   delete: (id: number) =>
     api.post('/admin/license/delete', { id }),
   export: () =>
-    api.get('/admin/license/export', { responseType: 'blob' }),
-  import: (file: File, overwrite: boolean) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('overwrite', overwrite.toString());
-    return api.post<ImportResult>('/admin/license/import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
+    api.get<Blob>('/admin/license/export', { responseType: 'blob' }),
+  import: (data: FormData) =>
+    api.post<ImportResult>('/admin/license/import', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getIPLogs: (licenseId: number, limit?: number) =>
+    api.post<{ logs: LicenseIPLog[] }>('/admin/license/ip-logs', { license_id: licenseId, limit }),
 };
 
 export const adminApi = {
